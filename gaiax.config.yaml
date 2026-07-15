@@ -1,8 +1,14 @@
 # ─────────────────────────────────────────────────────────────────
-# Single source of truth for your Gaia-X identity, service, and
-# policy claims. Every script and JSON-LD template reads this file.
-# Replace every REPLACE_ME. scripts/validate_local.py refuses to run
-# if any placeholder remains.
+# Single source of truth for your Gaia-X identity, services, resources,
+# and policy claims.
+#
+# DO NOT start here. Complete docs/PHASE_0_ASSESSMENT.md and
+# gaiax/mapping.yaml first — this file should be a mechanical transcription
+# of decisions you've already made, not where you make them.
+#
+# Replace every REPLACE_ME. scripts/validate_local.py refuses to run if
+# any placeholder remains, and cross-checks this file against
+# gaiax/mapping.yaml.
 # ─────────────────────────────────────────────────────────────────
 
 environment: staging          # staging | production
@@ -23,29 +29,77 @@ participant:
     country_subdivision: "DE-NW"
   website: "https://REPLACE_ME.example.com"
   contact_email: "REPLACE_ME@example.com"
+  # Fill in if this participant acts on behalf of / within a larger group.
+  # Leave null if not applicable. Purely descriptive — not a Gaia-X field,
+  # just keeps the "who's actually behind this" question answered in one place.
+  operates_within: null   # e.g. "AKI4KMU Consortium"
 
-service_offering:
-  name: "REPLACE_ME Service"
-  description: "REPLACE_ME — one sentence describing what the service does and produces."
-  version: "1.0.0"
-  # Business-capability description of the service. Do NOT list internal
-  # routes/modules here — see docs/QUICKSTART.md for why.
-  provided_capability: "REPLACE_ME — e.g. 'Drone image processing and analysis'"
-  data_account_export:
-    format: "REPLACE_ME — e.g. json, csv"
-    access_type: "REPLACE_ME — e.g. API, digital"
-    request_type: "REPLACE_ME — e.g. API, email"
+# One entry per row in docs/templates/service_inventory.md classified as
+# "External Service Offering". Most projects have exactly one — if you have
+# more than two or three, revisit service_inventory.md; it's usually a sign
+# you're describing implementation modules instead of a business capability.
+service_offerings:
+  - id: "primary"                      # arbitrary short key, used in filenames
+    name: "REPLACE_ME Service"
+    description: "REPLACE_ME — one sentence describing what the service does and produces."
+    version: "1.0.0"
+    provided_capability: "REPLACE_ME — e.g. 'Drone image processing and analysis'"
+    data_account_export:
+      format: "REPLACE_ME — e.g. json, csv"
+      access_type: "REPLACE_ME — e.g. API, digital"
+      request_type: "REPLACE_ME — e.g. API, email"
+    # Names of data_resources (below) this offering produces. Leave empty
+    # list if none.
+    produces_resources: []
+    # Names of policies (below) that govern this offering. Usually all of
+    # them — listed explicitly so a service with narrower policies than
+    # your org-wide default doesn't inherit ones that don't apply.
+    governed_by_policies: []
 
-policy:
-  data_owner: "Customer"
-  processing_location: "DE"
-  retention_days: null            # set an int, OR leave null and wire your API
-                                   # to report live retention rules instead (recommended)
-  sharing_with_third_parties: false
-  allowed_purposes:
-    - "REPLACE_ME"
-  deletion_available: true
-  deletion_mechanism: "REPLACE_ME — e.g. 'DELETE /api/data/{id}, effective immediately'"
+# One entry per row in docs/templates/resource_inventory.md. Leave the list
+# empty if your service produces no standalone data asset a customer would
+# reference independently of the processing service itself.
+data_resources: []
+# Example entry (uncomment and adapt):
+#  - id: "orthophoto"
+#    name: "Generated orthophoto"
+#    description: "GeoTIFF orthomosaic produced from stitched drone imagery"
+#    format: "GeoTIFF"
+#    produced_by: "primary"        # must match a service_offerings[].id
+#    owner: "Customer"
+#    retention_claim: "30 days, then deleted by cleanup job"
+#    retention_evidence: "CleanupPolicy DB table + services/cleanup.py nightly job"
+#    export_mechanism: "Download link, WebDAV"
+
+# Named policies, transcribed from docs/templates/policy_inventory.md.
+# Only include categories that genuinely apply — do not fabricate a
+# cross-border-transfer policy for a service that has none.
+# Every policy MUST have non-null `evidence` — a claim with no evidence
+# pointer fails validate_local.py. If you can't point at how a claim is
+# enforced, don't publish the claim yet.
+policies:
+  retention:
+    claim: "REPLACE_ME — e.g. 'Configurable per-record, default 30 days'"
+    evidence: "REPLACE_ME — e.g. 'CleanupPolicy DB table, enforced nightly by services/cleanup.py'"
+  deletion:
+    claim: "REPLACE_ME"
+    evidence: "REPLACE_ME"
+  processing_location:
+    claim: "REPLACE_ME — e.g. 'Germany only'"
+    evidence: "REPLACE_ME — e.g. 'Hosting contract specifies DE datacenter'"
+  sharing_with_third_parties:
+    claim: "REPLACE_ME — e.g. 'None'"
+    evidence: "REPLACE_ME"
+  # Add more as needed: access_control, cross_border_transfer, consent,
+  # audit_logging, purpose_limitation, export_policy, versioning_policy.
+  # Delete any block above that doesn't apply to your service.
+
+# What happens when service_offerings[].version changes. Old credentials
+# stay hosted and valid (Gaia-X consumers may have cached references to
+# them) unless explicitly revoked — see docs/VERSIONING.md.
+versioning:
+  strategy: "additive"   # additive (old versions stay hosted) | replace (old version revoked)
+  deprecation_notice_days: 30
 
 keys:
   private_key_path: "keys/private.pem"

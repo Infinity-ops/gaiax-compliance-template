@@ -1,0 +1,19 @@
+{
+  "@context": [
+    "https://registry.lab.gaia-x.eu/v1-staging/api/trusted-shape-registry/v1/shapes/jsonld/resource"
+  ],
+  "type": "gx:DataResource",
+  "id": "https://{domain}/.well-known/data-resource-{resource_id}.json",
+  "gx:name": "{resource_name}",
+  "gx:description": "{resource_description}",
+  "gx:producedBy": {
+    "id": "https://{domain}/.well-known/service-offering-{produced_by}.json"
+  },
+  "gx:exposedThrough": "{resource_export_mechanism}",
+  "gx:format": "{resource_format}",
+  "gx:policy": {
+    "dataOwner": "{resource_owner}",
+    "retentionClaim": "{resource_retention_claim}",
+    "retentionEvidence": "{resource_retention_evidence}"
+  }
+}

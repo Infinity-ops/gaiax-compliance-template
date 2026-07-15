@@ -44,6 +44,15 @@ mandatory attributes of the credential type you're building
 (`/v1/api/trusted-shape-registry/v1/shapes`) — Gaia-X versions its shapes,
 and this template targets one point-in-time snapshot of them.
 
+**Q: `scripts/build_credentials.py` fails with a `JsonLdError` about
+"loading remote context failed."**
+Signing a credential requires normalizing it via JSON-LD, which resolves
+the `@context` URL over the network (it's not just a string — it's fetched
+and parsed). Run this from an environment with outbound HTTPS access to
+`registry.lab.gaia-x.eu` (or `registry.gaia-x.eu` in production) — a
+sandboxed CI runner with restricted egress will fail here even though
+nothing in your config is wrong.
+
 **Q: Do I need to re-run the whole flow if I only change my service
 description?**
 No — only `build_credentials.py` (step 4) needs to re-run, since it's the

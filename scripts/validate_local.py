@@ -1,39 +1,104 @@
 #!/usr/bin/env python3
 """
-Run this before anything else, and in CI on every PR. Fails loudly if
-gaiax.config.yaml still has REPLACE_ME placeholders, so nobody accidentally
-notarizes or publishes fake identity/policy data.
+Run this before anything else, and in CI on every PR. Fails loudly on:
+  - unfilled REPLACE_ME placeholders in gaiax.config.yaml or mapping.yaml
+  - policies with no evidence pointer (a claim nobody can verify)
+  - data_resources referencing a service_offerings id that doesn't exist
+  - mapping.yaml entries pointing at a Gaia-X class this template can't
+    generate, or a config_section that doesn't exist
 
 Usage: python scripts/validate_local.py
-Exit code 0 = clean, 1 = placeholders remain.
+Exit code 0 = clean, 1 = problems found.
 """
 import sys
-from _config import load_config, find_unfilled_placeholders
+from _config import load_config, load_mapping, find_unfilled_placeholders
+
+ERRORS = []
+
+
+def error(msg):
+    ERRORS.append(msg)
+
+
+def check_placeholders(cfg, mapping):
+    unfilled = find_unfilled_placeholders(cfg) + find_unfilled_placeholders(mapping)
+    if unfilled:
+        error("Unfilled REPLACE_ME placeholders:\n  " + "\n  ".join(f"- {p}" for p in unfilled))
+
+
+def check_policy_evidence(cfg):
+    for name, policy in (cfg.get("policies") or {}).items():
+        claim = (policy or {}).get("claim")
+        evidence = (policy or {}).get("evidence")
+        if not claim:
+            error(f"Policy '{name}' has no claim.")
+        if not evidence:
+            error(
+                f"Policy '{name}' has a claim but no evidence pointer. "
+                f"A claim nobody can verify isn't compliance evidence — "
+                f"either fill in `evidence`, or delete this policy if it "
+                f"doesn't apply. See docs/templates/policy_inventory.md."
+            )
+
+
+def check_data_resource_references(cfg):
+    offering_ids = {o["id"] for o in cfg.get("service_offerings", [])}
+    for res in cfg.get("data_resources") or []:
+        produced_by = res.get("produced_by")
+        if produced_by not in offering_ids:
+            error(
+                f"data_resources entry '{res.get('id')}' has produced_by="
+                f"'{produced_by}', which doesn't match any service_offerings[].id "
+                f"({sorted(offering_ids)})."
+            )
+
+
+def check_mapping_consistency(cfg, mapping):
+    supported = set(mapping.get("supported_gaiax_classes", []))
+    for m in mapping.get("mappings", []):
+        gclass = m.get("gaiax_class")
+        if gclass not in supported:
+            error(
+                f"mapping.yaml entry '{m.get('business_object')}' claims "
+                f"gaiax_class '{gclass}', which isn't in supported_gaiax_classes. "
+                f"Either fix a typo, or this template doesn't generate that "
+                f"entity type yet — add a template + generation step first."
+            )
+        section = m.get("config_section", "")
+        if section and section != "n/a" and "n/a" not in section:
+            top = section.split("[")[0].split(".")[0]
+            if top not in cfg:
+                error(
+                    f"mapping.yaml entry '{m.get('business_object')}' references "
+                    f"config_section '{section}', but gaiax.config.yaml has no "
+                    f"top-level '{top}' key."
+                )
 
 
 def main():
     cfg = load_config()
-    unfilled = find_unfilled_placeholders(cfg)
+    mapping = load_mapping()
 
-    if unfilled:
-        print("gaiax.config.yaml has unfilled REPLACE_ME placeholders:\n")
-        for path in unfilled:
-            print(f"  - {path}")
-        print("\nFill these in before generating or submitting any credentials.")
-        sys.exit(1)
-
-    if cfg["environment"] == "production" and cfg["participant"]["registration_type"] not in (
-        "vatID", "leiCode", "EUID", "EORI",
-    ):
-        print("environment is 'production' but registration_type is invalid.")
-        sys.exit(1)
+    check_placeholders(cfg, mapping)
+    check_policy_evidence(cfg)
+    check_data_resource_references(cfg)
+    check_mapping_consistency(cfg, mapping)
 
     if cfg["environment"] == "production":
-        print("WARNING: environment is set to 'production'. This will notarize a "
-              "real registration number and submit real credentials to the live "
-              "GXDCH. Make sure that's intended.")
+        if cfg["participant"]["registration_type"] not in ("vatID", "leiCode", "EUID", "EORI"):
+            error("environment is 'production' but registration_type is invalid.")
+        print("WARNING: environment is 'production'. This will notarize a real "
+              "registration number and submit real credentials to the live "
+              "GXDCH. Make sure that's intended.\n")
 
-    print("Config OK — no placeholders remaining.")
+    if ERRORS:
+        print(f"{len(ERRORS)} problem(s) found:\n")
+        for e in ERRORS:
+            print(f"- {e}\n")
+        sys.exit(1)
+
+    print("Config OK — no placeholders, all policies have evidence, "
+          "all references consistent.")
 
 
 if __name__ == "__main__":

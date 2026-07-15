@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────
+# Explicit Business → Gaia-X Information Model mapping.
+#
+# This file exists so the mapping from "what your app does" to "which
+# Gaia-X ontology class describes it" lives in a reviewable document,
+# not only in a developer's head (or scattered across template files).
+# scripts/validate_local.py checks that every artifact referenced in
+# gaiax.config.yaml has a corresponding row here, and fails the build
+# if one is missing or points at a Gaia-X class that isn't one of the
+# ones this template knows how to generate.
+#
+# Fill this in during Phase 0 (docs/PHASE_0_ASSESSMENT.md), using your
+# application_inventory.md / service_inventory.md / resource_inventory.md
+# as the source material. This file is the artifact those documents
+# should converge on.
+# ─────────────────────────────────────────────────────────────────
+
+mappings:
+  - business_object: "REPLACE_ME — e.g. 'FarmGrid drone image processing capability'"
+    gaiax_class: "gx:ServiceOffering"
+    artifact: "gaiax/templates/service-offering.jsonld"
+    config_section: "service_offerings[0]"
+
+  - business_object: "REPLACE_ME — e.g. 'FlyPard Analytics GmbH'"
+    gaiax_class: "gx:LegalParticipant"
+    artifact: "gaiax/templates/legal-participant.jsonld"
+    config_section: "participant"
+
+  # Duplicate this block per data resource identified in
+  # docs/templates/resource_inventory.md. Delete this whole block if you
+  # have none.
+  - business_object: "REPLACE_ME — e.g. 'Generated orthophoto output'"
+    gaiax_class: "gx:DataResource"
+    artifact: "gaiax/templates/data-resource.jsonld"
+    config_section: "data_resources[0]"
+
+  - business_object: "Gaia-X Trust Framework acceptance"
+    gaiax_class: "gx:GaiaXTermsAndConditions"
+    artifact: "gaiax/templates/terms-and-conditions.jsonld"
+    config_section: "n/a — fetched live from GXDCH registry"
+
+# Known Gaia-X classes this template can generate an artifact for.
+# scripts/validate_local.py rejects any mapping entry whose gaiax_class
+# isn't in this list — either you've mistyped it, or you need to add a
+# new template + generation step before you can claim that mapping.
+supported_gaiax_classes:
+  - "gx:LegalParticipant"
+  - "gx:ServiceOffering"
+  - "gx:DataResource"
+  - "gx:GaiaXTermsAndConditions"

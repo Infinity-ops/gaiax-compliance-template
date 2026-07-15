@@ -6,11 +6,13 @@ Mount this in your existing app:
     from api.fastapi_example import router as gaiax_router
     app.include_router(gaiax_router, prefix="/gaia-x", tags=["gaia-x"])
 
-It serves the static credentials you generated in .well-known/, plus one
-example of merging a static policy claim with a LIVE value from your own
-database — copy this pattern for any policy field your app already tracks
-dynamically (retention rules, active data-sharing agreements, etc.), rather
-than letting a static file drift out of sync with what your system enforces.
+Serves whatever scripts/build_credentials.py generated into .well-known/ —
+one or more service offerings and data resources, discovered by id rather
+than hardcoded, plus the fixed participant/terms/policy/compliance
+documents. Also demonstrates merging a static policy claim with a LIVE
+value read from your own database (copy this pattern for any policy field
+your app already tracks dynamically instead of letting a static file drift
+out of sync with what your system actually enforces).
 """
 import json
 import os
@@ -38,9 +40,38 @@ def participant():
     return _load("participant.json")
 
 
-@router.get("/service-offering")
-def service_offering():
-    return _load("service-offering.json")
+@router.get("/service-offerings")
+def list_service_offerings():
+    """Every generated offering, by id — so a consumer can discover what's
+    published without knowing filenames in advance."""
+    prefix, suffix = "service-offering-", ".json"
+    ids = [
+        f[len(prefix):-len(suffix)]
+        for f in os.listdir(WELL_KNOWN_DIR)
+        if f.startswith(prefix) and f.endswith(suffix)
+    ]
+    return {"offerings": ids}
+
+
+@router.get("/service-offerings/{offering_id}")
+def service_offering(offering_id: str):
+    return _load(f"service-offering-{offering_id}.json")
+
+
+@router.get("/data-resources")
+def list_data_resources():
+    prefix, suffix = "data-resource-", ".json"
+    ids = [
+        f[len(prefix):-len(suffix)]
+        for f in os.listdir(WELL_KNOWN_DIR)
+        if f.startswith(prefix) and f.endswith(suffix)
+    ]
+    return {"resources": ids}
+
+
+@router.get("/data-resources/{resource_id}")
+def data_resource(resource_id: str):
+    return _load(f"data-resource-{resource_id}.json")
 
 
 @router.get("/terms-and-conditions")
@@ -52,27 +83,32 @@ def terms_and_conditions():
 def policy():
     """
     EXAMPLE of keeping a published policy honest: start from the static
-    claim, then overlay live facts from your own system. Replace the
-    `get_live_retention_rules()` stub below with a real query against
-    whatever table/service in your app actually enforces retention,
-    sharing, or deletion.
+    claim+evidence pairs, then overlay live facts from your own system
+    wherever you can. Replace get_live_policy_facts() below with a real
+    query against whatever in your app enforces retention, sharing, or
+    deletion — a static claim should describe the mechanism, a live
+    endpoint should confirm it's still true.
     """
     static_policy = _load("policy.json")
-    static_policy["liveRetentionRules"] = get_live_retention_rules()
+    live = get_live_policy_facts()
+    if live:
+        static_policy["liveFacts"] = live
     return static_policy
 
 
-def get_live_retention_rules():
+def get_live_policy_facts():
     """
-    Stub — replace with a real query. Example shape shown here matches
-    a typical "cleanup policy" table pattern:
+    Stub — replace with a real query. Example shape matches a typical
+    "cleanup policy" table pattern:
 
-        return [
-            {"name": p.name, "enabled": p.enabled, "max_age_days": p.max_age_days}
-            for p in db.query(CleanupPolicy).all()
-        ]
+        return {
+            "retention": [
+                {"name": p.name, "enabled": p.enabled, "max_age_days": p.max_age_days}
+                for p in db.query(CleanupPolicy).all()
+            ]
+        }
     """
-    return []
+    return {}
 
 
 @router.get("/compliance-credential")

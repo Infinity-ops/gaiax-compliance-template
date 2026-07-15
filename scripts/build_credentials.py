@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """
-Renders the Legal Participant, Terms & Conditions, and Service Offering
-templates from gaiax.config.yaml, then self-signs each with your private
-key. Requires: scripts/generate_keys.py, scripts/generate_did.py, and
+Renders and self-signs every credential described by gaiax.config.yaml:
+  - Legal Participant           (1x)
+  - Terms & Conditions          (1x, text fetched live from GXDCH registry)
+  - Service Offering            (1x per entry in service_offerings[])
+  - Data Resource               (1x per entry in data_resources[])
+  - policy.json                 (1x, built directly from the policies map —
+                                  not template-rendered, since its keys are
+                                  variable; see docs/INFORMATION_MODEL_MAPPING.md)
+
+Requires: scripts/generate_keys.py, scripts/generate_did.py, and
 scripts/request_lrn.py already run.
 
 Usage: python scripts/build_credentials.py
@@ -32,6 +39,14 @@ def fetch_terms_and_conditions(cfg):
     return resp.text.strip()
 
 
+def build_policy_json(cfg):
+    """policy.json isn't template-rendered — its keys are whatever the user
+    defined in policies:, so it's built directly from config. Every entry
+    is required to have both `claim` and `evidence` (validate_local.py
+    enforces this before this script is allowed to run)."""
+    return {name: dict(policy) for name, policy in (cfg.get("policies") or {}).items()}
+
+
 def main():
     cfg = load_config()
     if find_unfilled_placeholders(cfg):
@@ -56,8 +71,7 @@ def main():
     tnc = json.loads(tnc_raw)
     tnc["gx:termsAndConditions"] = tnc_text
     tnc["gx:hash"] = tnc_hash
-    tnc_signed = sign(tnc, private_key_pem, verification_method)
-    _write("tnc.json", tnc_signed)
+    _write("tnc.json", sign(tnc, private_key_pem, verification_method))
 
     # 2. Legal Participant (references the LRN credential fetched separately
     #    via request_lrn.py — must already exist at .well-known/lrn.json)
@@ -65,20 +79,45 @@ def main():
         print("Missing .well-known/lrn.json — run scripts/request_lrn.py first.")
         sys.exit(1)
     participant_raw = render_template(load_template("legal-participant.jsonld"), cfg)
-    participant = json.loads(participant_raw)
-    participant_signed = sign(participant, private_key_pem, verification_method)
-    _write("participant.json", participant_signed)
+    _write("participant.json", sign(json.loads(participant_raw), private_key_pem, verification_method))
 
-    # 3. Policy document (plain JSON, referenced by the Service Offering —
-    #    not itself a signed credential in this minimal template)
-    policy_raw = render_template(load_template("policy.json"), cfg)
-    _write("policy.json", json.loads(policy_raw))
+    # 3. Policy document — built directly from config, not from a template
+    _write("policy.json", build_policy_json(cfg))
 
-    # 4. Service Offering
-    offering_raw = render_template(load_template("service-offering.jsonld"), cfg)
-    offering = json.loads(offering_raw)
-    offering_signed = sign(offering, private_key_pem, verification_method)
-    _write("service-offering.json", offering_signed)
+    # 4. One Service Offering per entry in service_offerings[]
+    offering_template = load_template("service-offering.jsonld")
+    for offering in cfg.get("service_offerings", []):
+        extra = {
+            "offering_id": offering["id"],
+            "offering_name": offering["name"],
+            "offering_description": offering["description"],
+            "offering_data_account_export.request_type": offering["data_account_export"]["request_type"],
+            "offering_data_account_export.access_type": offering["data_account_export"]["access_type"],
+            "offering_data_account_export.format": offering["data_account_export"]["format"],
+            "offering_produces_resources": offering.get("produces_resources", []),
+        }
+        rendered = json.loads(render_template(offering_template, cfg, extra))
+        signed = sign(rendered, private_key_pem, verification_method)
+        _write(f"service-offering-{offering['id']}.json", signed)
+
+    # 5. One Data Resource per entry in data_resources[]
+    if cfg.get("data_resources"):
+        resource_template = load_template("data-resource.jsonld")
+        for resource in cfg["data_resources"]:
+            extra = {
+                "resource_id": resource["id"],
+                "resource_name": resource["name"],
+                "resource_description": resource["description"],
+                "resource_format": resource["format"],
+                "produced_by": resource["produced_by"],
+                "resource_owner": resource["owner"],
+                "resource_retention_claim": resource["retention_claim"],
+                "resource_retention_evidence": resource["retention_evidence"],
+                "resource_export_mechanism": resource["export_mechanism"],
+            }
+            rendered = json.loads(render_template(resource_template, cfg, extra))
+            signed = sign(rendered, private_key_pem, verification_method)
+            _write(f"data-resource-{resource['id']}.json", signed)
 
     print("\nAll credentials built and signed. Host the entire .well-known/ "
           "directory at your domain root, then run scripts/submit_compliance.py")

@@ -1,0 +1,53 @@
+name: Continuous compliance re-check
+
+# Compliance isn't a one-time event: this re-verifies that the credentials
+# your domain is CURRENTLY serving still parse as valid JSON-LD and that
+# your compliance credential is still fetchable, on a schedule rather than
+# only when someone happens to push a commit. It does NOT re-run the GXDCH
+# Compliance Service itself (that's a paid/rate-limited external call) —
+# it's a cheap early-warning check for link rot, expired hosting, or a
+# deployment that silently broke .well-known/. Wire in a real
+# re-submission to the Compliance Service here if your ecosystem requires
+# periodic re-attestation; check current GXDCH docs for the expected cadence.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # every Monday 06:00 UTC — adjust to your needs
+  workflow_dispatch: {}    # allow manual trigger from the Actions tab
+
+jobs:
+  recheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read domain from config
+        id: domain
+        run: |
+          DOMAIN=$(python3 -c "import yaml; print(yaml.safe_load(open('gaiax.config.yaml'))['domain'])")
+          echo "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch and validate hosted credentials are still live JSON
+        run: |
+          set -e
+          DOMAIN="${{ steps.domain.outputs.domain }}"
+          for path in did.json participant.json tnc.json policy.json compliance-credential.json; do
+            url="https://$DOMAIN/.well-known/$path"
+            echo "Checking $url"
+            code=$(curl -s -o /tmp/resp.json -w "%{http_code}" "$url" || echo "000")
+            if [ "$code" != "200" ]; then
+              echo "::error::$url returned HTTP $code — credential may be down or expired."
+              exit 1
+            fi
+            python3 -c "import json; json.load(open('/tmp/resp.json'))" || {
+              echo "::error::$url did not return valid JSON."
+              exit 1
+            }
+          done
+          echo "All checked credentials are live and well-formed."
+
+      - name: Warn if this is a placeholder domain
+        run: |
+          if echo "${{ steps.domain.outputs.domain }}" | grep -q "example.com"; then
+            echo "::warning::domain in gaiax.config.yaml still looks like a placeholder — skipping is expected until this is deployed."
+          fi

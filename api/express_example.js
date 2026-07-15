@@ -5,11 +5,6 @@
  *
  *   const gaiaxRouter = require('./api/express_example');
  *   app.use('/gaia-x', gaiaxRouter);
- *
- * Serves the static credentials generated into .well-known/, plus one
- * example of merging a static policy claim with a live value from your own
- * database — copy this pattern for any policy field your app already
- * tracks dynamically, rather than letting a static file drift out of sync.
  */
 const express = require('express');
 const fs = require('fs');
@@ -28,6 +23,12 @@ function load(filename) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function listIds(prefix, suffix = '.json') {
+  return fs.readdirSync(WELL_KNOWN_DIR)
+    .filter((f) => f.startsWith(prefix) && f.endsWith(suffix))
+    .map((f) => f.slice(prefix.length, -suffix.length));
+}
+
 function handle(filename) {
   return (req, res, next) => {
     try {
@@ -39,26 +40,42 @@ function handle(filename) {
 }
 
 router.get('/participant', handle('participant.json'));
-router.get('/service-offering', handle('service-offering.json'));
 router.get('/terms-and-conditions', handle('tnc.json'));
 router.get('/compliance-credential', handle('compliance-credential.json'));
+
+router.get('/service-offerings', (req, res) => {
+  res.json({ offerings: listIds('service-offering-') });
+});
+router.get('/service-offerings/:id', (req, res, next) => {
+  try {
+    res.json(load(`service-offering-${req.params.id}.json`));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/data-resources', (req, res) => {
+  res.json({ resources: listIds('data-resource-') });
+});
+router.get('/data-resources/:id', (req, res, next) => {
+  try {
+    res.json(load(`data-resource-${req.params.id}.json`));
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get('/policy', (req, res, next) => {
   try {
     const staticPolicy = load('policy.json');
     // Replace with a real query against whatever in your app enforces
     // retention/sharing/deletion — don't leave this hardcoded.
-    staticPolicy.liveRetentionRules = getLiveRetentionRules();
+    const liveFacts = {};
+    if (Object.keys(liveFacts).length) staticPolicy.liveFacts = liveFacts;
     res.json(staticPolicy);
   } catch (err) {
     next(err);
   }
 });
-
-function getLiveRetentionRules() {
-  // Stub — replace with a real DB query, e.g.:
-  // return db.cleanupPolicies.findMany().map(p => ({ name: p.name, maxAgeDays: p.maxAgeDays }));
-  return [];
-}
 
 module.exports = router;

@@ -24,14 +24,37 @@ def _load(filename: str) -> dict:
         return json.load(f)
 
 
+def _list_ids(prefix, suffix=".json"):
+    return [
+        f[len(prefix):-len(suffix)]
+        for f in os.listdir(WELL_KNOWN_DIR)
+        if f.startswith(prefix) and f.endswith(suffix)
+    ]
+
+
 @gaiax_bp.route("/participant")
 def participant():
     return jsonify(_load("participant.json"))
 
 
-@gaiax_bp.route("/service-offering")
-def service_offering():
-    return jsonify(_load("service-offering.json"))
+@gaiax_bp.route("/service-offerings")
+def list_service_offerings():
+    return jsonify({"offerings": _list_ids("service-offering-")})
+
+
+@gaiax_bp.route("/service-offerings/<offering_id>")
+def service_offering(offering_id):
+    return jsonify(_load(f"service-offering-{offering_id}.json"))
+
+
+@gaiax_bp.route("/data-resources")
+def list_data_resources():
+    return jsonify({"resources": _list_ids("data-resource-")})
+
+
+@gaiax_bp.route("/data-resources/<resource_id>")
+def data_resource(resource_id):
+    return jsonify(_load(f"data-resource-{resource_id}.json"))
 
 
 @gaiax_bp.route("/terms-and-conditions")
@@ -43,7 +66,9 @@ def terms_and_conditions():
 def policy():
     static_policy = _load("policy.json")
     # Replace with a real query — see fastapi_example.py for the pattern.
-    static_policy["liveRetentionRules"] = []
+    live = {}
+    if live:
+        static_policy["liveFacts"] = live
     return jsonify(static_policy)
 
 

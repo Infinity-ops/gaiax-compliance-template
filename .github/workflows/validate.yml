@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "gaiax.config.yaml"
+      - "gaiax/mapping.yaml"
       - "gaiax/templates/**"
       - "scripts/**"
   push:
@@ -22,30 +23,56 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Check for unfilled placeholders
+      - name: Check placeholders, evidence, and cross-references
         run: python scripts/validate_local.py
 
-      - name: Check templates render without errors
+      - name: Check every template renders to valid JSON
         run: |
-          python - <<'EOF'
-          import sys, json
+          python - <<'PYEOF'
+          import json, sys
           sys.path.insert(0, "scripts")
           from _config import load_config, render_template
 
           cfg = load_config()
-          for tpl in [
-              "gaiax/templates/legal-participant.jsonld",
-              "gaiax/templates/service-offering.jsonld",
-              "gaiax/templates/terms-and-conditions.jsonld",
-              "gaiax/templates/policy.json",
-          ]:
-              with open(tpl) as f:
+
+          def render_and_check(path, extra=None):
+              with open(path) as f:
                   text = f.read()
-              rendered = render_template(text, cfg)
-              json.loads(rendered.replace('"REPLACE_ME"', 'null')) if "REPLACE_ME" not in rendered else None
+              rendered = render_template(text, cfg, extra or {})
               json.loads(rendered)
-              print(f"OK: {tpl}")
-          EOF
+              print(f"OK: {path}" + (f" [{extra.get('offering_id') or extra.get('resource_id')}]" if extra else ""))
+
+          render_and_check("gaiax/templates/legal-participant.jsonld")
+          render_and_check("gaiax/templates/terms-and-conditions.jsonld")
+
+          for offering in cfg.get("service_offerings", []):
+              extra = {
+                  "offering_id": offering["id"],
+                  "offering_name": offering["name"],
+                  "offering_description": offering["description"],
+                  "offering_data_account_export.request_type": offering["data_account_export"]["request_type"],
+                  "offering_data_account_export.access_type": offering["data_account_export"]["access_type"],
+                  "offering_data_account_export.format": offering["data_account_export"]["format"],
+                  "offering_produces_resources": offering.get("produces_resources", []),
+              }
+              render_and_check("gaiax/templates/service-offering.jsonld", extra)
+
+          for resource in cfg.get("data_resources") or []:
+              extra = {
+                  "resource_id": resource["id"],
+                  "resource_name": resource["name"],
+                  "resource_description": resource["description"],
+                  "resource_format": resource["format"],
+                  "produced_by": resource["produced_by"],
+                  "resource_owner": resource["owner"],
+                  "resource_retention_claim": resource["retention_claim"],
+                  "resource_retention_evidence": resource["retention_evidence"],
+                  "resource_export_mechanism": resource["export_mechanism"],
+              }
+              render_and_check("gaiax/templates/data-resource.jsonld", extra)
+
+          print("All templates render to valid JSON.")
+          PYEOF
 
       - name: Warn if production env with placeholder domain
         run: |
