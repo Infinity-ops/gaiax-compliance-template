@@ -1,0 +1,55 @@
+name: Validate Gaia-X config
+
+on:
+  pull_request:
+    paths:
+      - "gaiax.config.yaml"
+      - "gaiax/templates/**"
+      - "scripts/**"
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check for unfilled placeholders
+        run: python scripts/validate_local.py
+
+      - name: Check templates render without errors
+        run: |
+          python - <<'EOF'
+          import sys, json
+          sys.path.insert(0, "scripts")
+          from _config import load_config, render_template
+
+          cfg = load_config()
+          for tpl in [
+              "gaiax/templates/legal-participant.jsonld",
+              "gaiax/templates/service-offering.jsonld",
+              "gaiax/templates/terms-and-conditions.jsonld",
+              "gaiax/templates/policy.json",
+          ]:
+              with open(tpl) as f:
+                  text = f.read()
+              rendered = render_template(text, cfg)
+              json.loads(rendered.replace('"REPLACE_ME"', 'null')) if "REPLACE_ME" not in rendered else None
+              json.loads(rendered)
+              print(f"OK: {tpl}")
+          EOF
+
+      - name: Warn if production env with placeholder domain
+        run: |
+          if grep -q "environment: production" gaiax.config.yaml && grep -q "example.com" gaiax.config.yaml; then
+            echo "::error::environment is 'production' but domain still looks like a placeholder."
+            exit 1
+          fi

@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────────
+# Single source of truth for your Gaia-X identity, service, and
+# policy claims. Every script and JSON-LD template reads this file.
+# Replace every REPLACE_ME. scripts/validate_local.py refuses to run
+# if any placeholder remains.
+# ─────────────────────────────────────────────────────────────────
+
+environment: staging          # staging | production
+                               # staging    -> *.lab.gaia-x.eu (Let's Encrypt certs OK)
+                               # production -> *.gaia-x.eu     (needs eIDAS/EV cert + real LRN)
+
+domain: "REPLACE_ME.example.com"   # must be a real domain YOU control over HTTPS
+                                    # identity will be did:web:REPLACE_ME.example.com
+
+participant:
+  legal_name: "REPLACE_ME GmbH"
+  country: "DE"                       # ISO 3166-1 alpha-2
+  registration_type: "vatID"          # one of: vatID | leiCode | EUID | EORI
+  registration_number: "REPLACE_ME"   # e.g. DE123456789
+  headquarter_address:
+    country_subdivision: "DE-NW"      # ISO 3166-2
+  legal_address:
+    country_subdivision: "DE-NW"
+  website: "https://REPLACE_ME.example.com"
+  contact_email: "REPLACE_ME@example.com"
+
+service_offering:
+  name: "REPLACE_ME Service"
+  description: "REPLACE_ME — one sentence describing what the service does and produces."
+  version: "1.0.0"
+  # Business-capability description of the service. Do NOT list internal
+  # routes/modules here — see docs/QUICKSTART.md for why.
+  provided_capability: "REPLACE_ME — e.g. 'Drone image processing and analysis'"
+  data_account_export:
+    format: "REPLACE_ME — e.g. json, csv"
+    access_type: "REPLACE_ME — e.g. API, digital"
+    request_type: "REPLACE_ME — e.g. API, email"
+
+policy:
+  data_owner: "Customer"
+  processing_location: "DE"
+  retention_days: null            # set an int, OR leave null and wire your API
+                                   # to report live retention rules instead (recommended)
+  sharing_with_third_parties: false
+  allowed_purposes:
+    - "REPLACE_ME"
+  deletion_available: true
+  deletion_mechanism: "REPLACE_ME — e.g. 'DELETE /api/data/{id}, effective immediately'"
+
+keys:
+  private_key_path: "keys/private.pem"
+  public_key_path: "keys/public.pem"
+  key_size: 4096
+
+gxdch:
+  staging:
+    registry: "https://registry.lab.gaia-x.eu/v1-staging/api"
+    notary: "https://registrationnumber.notary.lab.gaia-x.eu/v1"
+    compliance: "https://compliance.lab.gaia-x.eu/v1-staging/api"
+  production:
+    registry: "https://registry.gaia-x.eu/v1/api"
+    notary: "https://registrationnumber.notary.gaia-x.eu/v1"
+    compliance: "https://compliance.gaia-x.eu/v1/api"

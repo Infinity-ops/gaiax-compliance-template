@@ -1,0 +1,9 @@
+{
+  "@context": [
+    "https://registry.lab.gaia-x.eu/v1-staging/api/trusted-shape-registry/v1/shapes/jsonld/participant"
+  ],
+  "type": "gx:GaiaXTermsAndConditions",
+  "id": "https://{domain}/.well-known/tnc.json",
+  "gx:termsAndConditions": "__FETCHED_AT_RUNTIME_FROM_GXDCH_REGISTRY__",
+  "gx:hash": "__COMPUTED_AT_RUNTIME__"
+}

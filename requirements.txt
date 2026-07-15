@@ -1,0 +1,9 @@
+PyYAML>=6.0
+requests>=2.31
+cryptography>=42.0
+jwcrypto>=1.5
+PyLD>=2.0
+
+# Only needed if you use api/fastapi_example.py directly:
+# fastapi>=0.110
+# uvicorn>=0.29

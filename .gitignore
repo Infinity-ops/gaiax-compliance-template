@@ -1,0 +1,11 @@
+# Never commit your private signing key
+keys/private.pem
+keys/
+
+# Generated credentials are environment-specific — regenerate, don't commit
+# (uncomment if you don't want a public reference copy of staging output)
+# .well-known/*.json
+
+__pycache__/
+*.pyc
+.env

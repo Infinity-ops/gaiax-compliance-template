@@ -1,0 +1,20 @@
+{
+  "@context": [
+    "https://registry.lab.gaia-x.eu/v1-staging/api/trusted-shape-registry/v1/shapes/jsonld/participant"
+  ],
+  "type": "gx:LegalParticipant",
+  "id": "https://{domain}/.well-known/participant.json",
+  "gx:legalName": "{participant.legal_name}",
+  "gx:legalRegistrationNumber": {
+    "id": "https://{domain}/.well-known/lrn.json"
+  },
+  "gx:headquarterAddress": {
+    "gx:countrySubdivisionCode": "{participant.headquarter_address.country_subdivision}"
+  },
+  "gx:legalAddress": {
+    "gx:countrySubdivisionCode": "{participant.legal_address.country_subdivision}"
+  },
+  "gx-terms-and-conditions:gaiaxTermsAndConditions": {
+    "id": "https://{domain}/.well-known/tnc.json"
+  }
+}

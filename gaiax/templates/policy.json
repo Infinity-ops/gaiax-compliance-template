@@ -1,0 +1,14 @@
+{
+  "dataOwner": "{policy.data_owner}",
+  "processingLocation": "{policy.processing_location}",
+  "retention": {
+    "fixedDays": "{policy.retention_days}",
+    "note": "If your service has configurable/per-record retention rules, do not hardcode a number here — serve this field live from your own database instead. See api/fastapi_example.py for the pattern."
+  },
+  "sharingWithThirdParties": "{policy.sharing_with_third_parties}",
+  "allowedPurposes": "{policy.allowed_purposes}",
+  "dataSubjectDeletion": {
+    "available": "{policy.deletion_available}",
+    "mechanism": "{policy.deletion_mechanism}"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "@context": [
+    "https://registry.lab.gaia-x.eu/v1-staging/api/trusted-shape-registry/v1/shapes/jsonld/serviceoffering"
+  ],
+  "type": "gx:ServiceOffering",
+  "id": "https://{domain}/.well-known/service-offering.json",
+  "gx:name": "{service_offering.name}",
+  "gx:description": "{service_offering.description}",
+  "gx:providedBy": {
+    "id": "https://{domain}/.well-known/participant.json"
+  },
+  "gx:policy": {
+    "id": "https://{domain}/.well-known/policy.json"
+  },
+  "gx:termsAndConditions": {
+    "id": "https://{domain}/.well-known/tnc.json"
+  },
+  "gx:dataAccountExport": {
+    "gx:requestType": "{service_offering.data_account_export.request_type}",
+    "gx:accessType": "{service_offering.data_account_export.access_type}",
+    "gx:formatType": "{service_offering.data_account_export.format}"
+  }
+}
