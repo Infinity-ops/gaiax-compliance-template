@@ -10,6 +10,7 @@ Usage: python scripts/request_lrn.py
 import json
 import os
 import sys
+from urllib.parse import quote
 
 import requests
 from _config import load_config, gxdch_urls, find_unfilled_placeholders
@@ -46,7 +47,13 @@ def main():
         field: reg_number,
     }
 
-    notary_url = f"{gxdch_urls(cfg)['notary']}/registrationNumberVC?vcid={vcid}"
+    # IMPORTANT: vcid contains a literal '#' (it's a fragment identifier by
+    # design — see the GXDCH docs on Verifiable Credential IDs). Left
+    # unencoded, '#' is interpreted as the START of a URL fragment by any
+    # URL parser, silently truncating everything after it before the
+    # request even reaches the server. quote(vcid, safe='') percent-encodes
+    # it so the full value actually arrives as the vcid query parameter.
+    notary_url = f"{gxdch_urls(cfg)['notary']}/registrationNumberVC?vcid={quote(vcid, safe='')}"
     print(f"POST {notary_url}")
     print(json.dumps(payload, indent=2))
 
