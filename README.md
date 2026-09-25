@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
-![Validate](https://github.com/Infinity-ops/gaiax-compliance-template/actions/workflows/validate.yml/badge.svg)
+![Lint](https://github.com/Infinity-ops/gaiax-compliance-template/actions/workflows/lint.yml/badge.svg)
 ![Status](https://img.shields.io/badge/status-community%20preview-orange.svg)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
