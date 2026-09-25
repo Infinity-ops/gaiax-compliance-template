@@ -1,115 +1,113 @@
 # gaiax-compliance-template
 
-A framework-agnostic starter kit for making **any** application or service
-Gaia-X compliant: business/repository assessment, an explicit business →
-Gaia-X Information Model mapping, evidence-based policy claims, Self
-Descriptions, Verifiable Credentials, DID:web identity, GXDCH compliance
-submission, and a small metadata API you drop into your existing backend.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
+![Validate](https://github.com/Infinity-ops/gaiax-compliance-template/actions/workflows/validate.yml/badge.svg)
+![Status](https://img.shields.io/badge/status-community%20preview-orange.svg)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
-This is **not** a Gaia-X SDK and it doesn't touch your business logic. It
-produces and serves the declarative artifacts Gaia-X requires, scripts the
-credential-signing workflow, and — as of v2 — forces you to answer the
-business questions Gaia-X actually cares about before any JSON-LD gets
-generated.
+**A starter kit that turns "we need to be Gaia-X compliant" from a
+six-week research project into a checklist.**
 
-> Gaia-X is mid-transition to a new architecture (the "Danube" release). The
-> endpoints wired up here target the current public Tagus-era GXDCH
-> lab/staging services. Before submitting anything to **production**, check
-> `docs.gaia-x.eu` for current endpoint URLs — see `docs/FAQ.md`.
+Gaia-X's own docs are correct, thorough, and genuinely hard to turn into
+working code — most teams either burn weeks reverse-engineering JSON-LD
+signing and credential ordering, or hire a consultant. This repo is the
+distilled version: fill in five short documents about your business, run
+eight scripts in order, end up with a signed Gaia-X Compliance Credential
+for *any* application, in any language, on your own infrastructure.
 
-## What's new in v2
+Not affiliated with or endorsed by Gaia-X AISBL. "Gaia-X" is a trademark of
+the Gaia-X Association — this is an independent, community-built
+implementation of their public specifications.
 
-v1 went straight from a flat config file to JSON-LD. A Gaia-X compliance
-review of v1 (see `CHANGELOG.md` for the full critique) correctly flagged
-that this skipped the actual hard part of Gaia-X — deciding what your
-business capability, provider, and data assets *are* — and that a single
-flat config couldn't represent Gaia-X's richer entity model. v2 addresses
-this:
+## What you actually get
 
-- **Phase 0 assessment** (`docs/PHASE_0_ASSESSMENT.md` + `docs/templates/`)
-  — five short fillable documents you complete *before* touching config,
-  so the config becomes a transcription of decisions already made, not
-  where you make them.
-- **Explicit Information Model mapping** (`gaiax/mapping.yaml`) — a
-  reviewable record of which business object maps to which Gaia-X ontology
-  class, checked by `scripts/validate_local.py` rather than living only in
-  a developer's head.
-- **Multiple Service Offerings and Data Resources** — `gaiax.config.yaml`
-  now supports a list of offerings and a separate `gx:DataResource` entity
-  for datasets/reports your service produces, instead of one flattened
-  block.
-- **Evidence-based policies** — every policy is a `claim` + `evidence` pair.
-  `scripts/validate_local.py` fails the build if a claim has no evidence
-  pointer — a policy nobody can verify isn't compliance, it's a promise.
-- **Versioning strategy** (`docs/VERSIONING.md`) and a **continuous
-  compliance** scheduled CI check
-  (`.github/workflows/continuous-compliance.yml`) that re-verifies your
-  hosted credentials weekly instead of treating compliance as a one-time
-  event.
-- **Architecture diagram** (`docs/ARCHITECTURE.md`) showing the revised
-  flow and the trust boundary — what stays inside your org vs. what's
-  public vs. what the GXDCH sees.
+- 📋 **Phase 0 assessment** — five plain-language documents that force the
+  real decisions (who's the legal entity, what's the service, what's the
+  evidence for each policy) before any YAML gets touched
+- 🧩 **Explicit Information Model mapping** — a reviewable file linking
+  every business object to its Gaia-X ontology class, not just tribal
+  knowledge in one developer's head
+- 🔐 **Real signing, not a mock** — proper JSON-LD (URDNA2015) normalization
+  and detached JWS, the same mechanism Gaia-X's own tooling uses
+- ✅ **Evidence-based policies** — a claim with no pointer to something
+  verifiable fails validation, on purpose
+- 🔁 **Continuous compliance** — a scheduled CI job that catches credential
+  rot before a real consumer does
+- 🧱 **Framework-agnostic** — FastAPI, Flask, and Express reference
+  endpoints included; the pipeline itself doesn't care what you're running
 
-## What's in here
+## Status — read this before you trust it blindly
+
+Local generation, signing, and validation are tested end-to-end — the
+config → mapping → JSON-LD → signed-credential pipeline runs cleanly
+against both empty and fully-populated configs.
+
+The GXDCH round-trip has been tested live against staging, and that testing
+already caught and fixed a real bug: a `#` in the LRN `vcid` parameter was
+being sent unencoded, silently truncated by any URL parser as a fragment.
+`scripts/request_lrn.py` now percent-encodes it correctly. If you hit
+something else against a live GXDCH endpoint, **open an issue** — that's
+how this gets from "works for us" to "verified for everyone."
+
+> Gaia-X is mid-transition to a new architecture (the "Danube" release).
+> Endpoints here target the current Tagus-era GXDCH lab/staging services —
+> check `docs.gaia-x.eu` before pointing anything at production. Details in
+> `docs/FAQ.md`.
+
+## 60-second map of the repo
 
 ```
-docs/PHASE_0_ASSESSMENT.md      ← start here, before any config
-docs/templates/                 ← fillable inventory documents for Phase 0
-gaiax/mapping.yaml               ← explicit business → Gaia-X class mapping
-gaiax.config.yaml                ← single source of truth for identity/services/policies
-gaiax/templates/                 ← JSON-LD credential templates
-scripts/                         ← key generation, DID setup, signing, submission, validation
-api/                              ← reference metadata endpoints (FastAPI, Express, Flask)
-.well-known/                     ← files you host at your domain root
-.github/workflows/                ← PR validation + scheduled continuous-compliance check
-docs/ARCHITECTURE.md, docs/VERSIONING.md, docs/FAQ.md, docs/QUICKSTART.md
+docs/PHASE_0_ASSESSMENT.md   → start here, before any config
+docs/templates/              → the 5 fillable inventory docs for Phase 0
+gaiax/mapping.yaml           → business object → Gaia-X ontology class
+gaiax.config.yaml            → single source of truth, everything else derives from this
+scripts/                     → keys → DID → notarize → build → submit, in order
+api/                         → drop-in metadata endpoints (FastAPI / Flask / Express)
+.github/workflows/           → PR validation + weekly continuous-compliance check
+docs/                        → architecture, versioning, FAQ, full walkthrough
 ```
 
 ## Quickstart
 
-1. **Do Phase 0 first.** Read `docs/PHASE_0_ASSESSMENT.md`, fill in the five
-   documents in `docs/templates/`. This is the part that actually requires
-   thought — everything after this is mechanical.
-2. Fill in `gaiax/mapping.yaml`, then `gaiax.config.yaml`, transcribing the
-   decisions from step 1.
-3. `pip install -r requirements.txt`
-4. `python scripts/validate_local.py` — must pass before continuing. Fails
-   on unfilled placeholders, policies without evidence, or mapping
-   inconsistencies.
-5. `python scripts/generate_keys.py && python scripts/generate_did.py` →
-   host `.well-known/did.json` + your TLS cert chain at your real domain.
-6. `python scripts/request_lrn.py` → notarizes your registration number via
-   the GXDCH Notarization API.
-7. `python scripts/build_credentials.py` → generates and signs Participant,
-   Terms & Conditions, one Service Offering per configured offering, and
-   one Data Resource per configured resource.
-8. Redeploy `.well-known/`, then `python scripts/submit_compliance.py` →
-   submits to the GXDCH Compliance Service, prints the resulting Compliance
-   Credential or validation errors.
-9. Drop `api/fastapi_example.py` (or Flask/Express) into your service.
+```bash
+pip install -r requirements.txt
+```
 
-Full walkthrough: `docs/QUICKSTART.md`. Full architecture and trust-boundary
-diagrams: `docs/ARCHITECTURE.md`.
+| # | Command | What it does |
+|---|---|---|
+| 1 | fill `docs/templates/*.md` | Answer the business questions, in plain language — see `docs/PHASE_0_ASSESSMENT.md` |
+| 2 | fill `gaiax/mapping.yaml`, then `gaiax.config.yaml` | Transcribe step 1's answers — mechanical, not creative |
+| 3 | `python scripts/validate_local.py` | Must pass. Catches placeholders, missing evidence, broken references |
+| 4 | `python scripts/generate_keys.py && python scripts/generate_did.py` | Creates your keypair + `did:web` identity → deploy `.well-known/` to your domain |
+| 5 | `python scripts/request_lrn.py` | Notarizes your VAT/LEI/EUID/EORI against the real registry via GXDCH |
+| 6 | `python scripts/build_credentials.py` | Signs Participant, T&Cs, every Service Offering + Data Resource |
+| 7 | redeploy `.well-known/`, then `python scripts/submit_compliance.py` | Submits to the GXDCH Compliance Service → your Compliance Credential |
+| 8 | mount `api/fastapi_example.py` (or Flask/Express) | Serves it all live, with a pattern for keeping policy claims honest against your real DB |
 
-## Design principles
+Full walkthrough with checkpoints: `docs/HOW_TO_USE_THIS_REPO.md`.
+Architecture + trust-boundary diagrams: `docs/ARCHITECTURE.md`.
 
-- **Business decisions before config edits.** Phase 0 exists so nobody
-  fills in a Service Offering before deciding what their service offering
-  actually is.
-- **Config-driven, not code-driven.** Change your legal name or retention
-  policy in YAML, not Python.
-- **Claims need evidence.** A policy claim with no pointer to something
-  verifiable (a config value, a cron job, a DB table) fails validation.
-- **Static claims stay close to the truth.** The API reference examples
-  show merging a static policy with a live database read, so published
-  claims can't silently drift from what your system enforces.
-- **Never fabricate identity.** Every field requiring a real legal fact is
-  an obvious `REPLACE_ME`. The build refuses to proceed with any left.
-- **Staging first.** Every script defaults to `*.lab.gaia-x.eu`. Production
-  is one explicit config flag away.
-- **Compliance isn't a one-time event.** A scheduled CI job re-checks your
-  hosted credentials are still live and well-formed.
+## Why it's built this way
+
+| Principle | In practice |
+|---|---|
+| Business before config | Phase 0 exists so nobody writes a Service Offering before deciding what it *is* |
+| Config-driven | Change your legal name or retention policy in YAML, never Python |
+| Claims need evidence | No verifiable pointer → the build fails, deliberately |
+| Static claims stay honest | Reference API merges a static policy with a live DB read, so publications can't quietly drift from reality |
+| Staging first | Production requires an explicit flag flip — nobody accidentally notarizes a real VAT ID against a test service |
+| Compliance isn't a one-time event | Weekly CI re-checks your hosted credentials are still live |
+
+## Contributing
+
+Issues and PRs welcome — especially real GXDCH submission reports (see
+Status), schema-drift fixes as Gaia-X evolves, and framework examples
+beyond the three included. Check `CHANGELOG.md` before proposing a
+restructure — a few choices (one config file instead of five, for example)
+were deliberate tradeoffs made after an external compliance review, not
+oversights.
 
 ## License
 
-MIT — see `LICENSE`. Use this for any application, commercial or not.
+MIT — see `LICENSE`. Use it for anything, commercial or not.
