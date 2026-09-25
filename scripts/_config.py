@@ -6,8 +6,16 @@ import os
 import re
 import yaml
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "gaiax.config.yaml")
-MAPPING_PATH = os.path.join(os.path.dirname(__file__), "..", "gaiax", "mapping.yaml")
+DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "gaiax.config.yaml")
+DEFAULT_MAPPING_PATH = os.path.join(os.path.dirname(__file__), "..", "gaiax", "mapping.yaml")
+
+# Overridable via env var so CI can validate the TOOLING against a filled
+# fixture config (tests/fixtures/) without requiring this repo's own
+# shipped gaiax.config.yaml — which is intentionally full of REPLACE_ME
+# placeholders for users to fill in — to pass completeness checks. See
+# .github/workflows/lint.yml.
+CONFIG_PATH = os.environ.get("GAIAX_CONFIG_PATH", DEFAULT_CONFIG_PATH)
+MAPPING_PATH = os.environ.get("GAIAX_MAPPING_PATH", DEFAULT_MAPPING_PATH)
 
 PLACEHOLDER = re.compile(r"REPLACE_ME")
 

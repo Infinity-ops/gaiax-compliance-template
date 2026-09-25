@@ -1,0 +1,29 @@
+# EXAMPLE mapping — pairs with tests/fixtures/example.config.yaml. See
+# gaiax/mapping.yaml for the real one you fill in for your own project.
+
+mappings:
+  - business_object: "Acme Shipment Tracking Service"
+    gaiax_class: "gx:ServiceOffering"
+    artifact: "gaiax/templates/service-offering.jsonld"
+    config_section: "service_offerings[0]"
+
+  - business_object: "Acme Logistics Analytics GmbH"
+    gaiax_class: "gx:LegalParticipant"
+    artifact: "gaiax/templates/legal-participant.jsonld"
+    config_section: "participant"
+
+  - business_object: "Consolidated delivery report"
+    gaiax_class: "gx:DataResource"
+    artifact: "gaiax/templates/data-resource.jsonld"
+    config_section: "data_resources[0]"
+
+  - business_object: "Gaia-X Trust Framework acceptance"
+    gaiax_class: "gx:GaiaXTermsAndConditions"
+    artifact: "gaiax/templates/terms-and-conditions.jsonld"
+    config_section: "n/a — fetched live from GXDCH registry"
+
+supported_gaiax_classes:
+  - "gx:LegalParticipant"
+  - "gx:ServiceOffering"
+  - "gx:DataResource"
+  - "gx:GaiaXTermsAndConditions"

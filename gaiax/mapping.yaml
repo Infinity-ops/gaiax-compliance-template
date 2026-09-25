@@ -16,12 +16,12 @@
 # ─────────────────────────────────────────────────────────────────
 
 mappings:
-  - business_object: "REPLACE_ME — e.g. 'FarmGrid drone image processing capability'"
+  - business_object: "REPLACE_ME — e.g. 'Acme Shipment Tracking Service'"
     gaiax_class: "gx:ServiceOffering"
     artifact: "gaiax/templates/service-offering.jsonld"
     config_section: "service_offerings[0]"
 
-  - business_object: "REPLACE_ME — e.g. 'FlyPard Analytics GmbH'"
+  - business_object: "REPLACE_ME — e.g. 'Acme Logistics Analytics GmbH'"
     gaiax_class: "gx:LegalParticipant"
     artifact: "gaiax/templates/legal-participant.jsonld"
     config_section: "participant"

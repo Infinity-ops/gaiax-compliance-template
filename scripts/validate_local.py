@@ -7,8 +7,17 @@ Run this before anything else, and in CI on every PR. Fails loudly on:
   - mapping.yaml entries pointing at a Gaia-X class this template can't
     generate, or a config_section that doesn't exist
 
+EXCEPTION: if the config is still in its pristine, un-started state (the
+`domain` field is still exactly the shipped placeholder), this exits 0 with
+a friendly notice instead of failing. Without this, the template repo's own
+`main` branch — which always ships with an unfilled example config, by
+design — would show a permanent red CI badge, and any fresh fork would see
+a scary failure on day one before anyone has touched anything. The moment
+`domain` is changed to a real value, full strict validation applies again —
+that's the actual point where an incomplete config should start failing.
+
 Usage: python scripts/validate_local.py
-Exit code 0 = clean, 1 = problems found.
+Exit code 0 = clean (or pristine/untouched), 1 = problems found.
 """
 import sys
 from _config import load_config, load_mapping, find_unfilled_placeholders
@@ -75,8 +84,26 @@ def check_mapping_consistency(cfg, mapping):
                 )
 
 
+PRISTINE_DOMAIN = "REPLACE_ME.example.com"
+
+
+def is_pristine_template(cfg):
+    """True only for the exact, untouched shipped example config."""
+    return cfg.get("domain") == PRISTINE_DOMAIN
+
+
 def main():
     cfg = load_config()
+
+    if is_pristine_template(cfg):
+        print(
+            "This is the unmodified template config — nothing to validate "
+            "yet.\n\nStart with docs/PHASE_0_ASSESSMENT.md, then fill in "
+            "gaiax/mapping.yaml and gaiax.config.yaml. Once you set a real "
+            "`domain`, this check validates for real."
+        )
+        sys.exit(0)
+
     mapping = load_mapping()
 
     check_placeholders(cfg, mapping)

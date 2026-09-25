@@ -11,20 +11,22 @@
 # gaiax/mapping.yaml.
 # ─────────────────────────────────────────────────────────────────
 
-environment: staging          # staging | production
-                               # staging    -> *.lab.gaia-x.eu (Let's Encrypt certs OK)
-                               # production -> *.gaia-x.eu     (needs eIDAS/EV cert + real LRN)
+environment:
+  staging # staging | production
+  # staging    -> *.lab.gaia-x.eu (Let's Encrypt certs OK)
+  # production -> *.gaia-x.eu     (needs eIDAS/EV cert + real LRN)
 
-domain: "REPLACE_ME.example.com"   # must be a real domain YOU control over HTTPS
-                                    # identity will be did:web:REPLACE_ME.example.com
+domain:
+  "REPLACE_ME.example.com" # must be a real domain YOU control over HTTPS
+  # identity will be did:web:REPLACE_ME.example.com
 
 participant:
   legal_name: "REPLACE_ME GmbH"
-  country: "DE"                       # ISO 3166-1 alpha-2
-  registration_type: "vatID"          # one of: vatID | leiCode | EUID | EORI
-  registration_number: "REPLACE_ME"   # e.g. DE123456789
+  country: "DE" # ISO 3166-1 alpha-2
+  registration_type: "vatID" # one of: vatID | leiCode | EUID | EORI
+  registration_number: "REPLACE_ME" # e.g. DE123456789
   headquarter_address:
-    country_subdivision: "DE-NW"      # ISO 3166-2
+    country_subdivision: "DE-NW" # ISO 3166-2
   legal_address:
     country_subdivision: "DE-NW"
   website: "https://REPLACE_ME.example.com"
@@ -32,14 +34,14 @@ participant:
   # Fill in if this participant acts on behalf of / within a larger group.
   # Leave null if not applicable. Purely descriptive — not a Gaia-X field,
   # just keeps the "who's actually behind this" question answered in one place.
-  operates_within: null   # e.g. "AKI4KMU Consortium"
+  operates_within: null # e.g. "Acme Holdings Group"
 
 # One entry per row in docs/templates/service_inventory.md classified as
 # "External Service Offering". Most projects have exactly one — if you have
 # more than two or three, revisit service_inventory.md; it's usually a sign
 # you're describing implementation modules instead of a business capability.
 service_offerings:
-  - id: "primary"                      # arbitrary short key, used in filenames
+  - id: "primary" # arbitrary short key, used in filenames
     name: "REPLACE_ME Service"
     description: "REPLACE_ME — one sentence describing what the service does and produces."
     version: "1.0.0"
@@ -98,7 +100,7 @@ policies:
 # stay hosted and valid (Gaia-X consumers may have cached references to
 # them) unless explicitly revoked — see docs/VERSIONING.md.
 versioning:
-  strategy: "additive"   # additive (old versions stay hosted) | replace (old version revoked)
+  strategy: "additive" # additive (old versions stay hosted) | replace (old version revoked)
   deprecation_notice_days: 30
 
 keys:

@@ -1,0 +1,84 @@
+# ─────────────────────────────────────────────────────────────────
+# EXAMPLE, fully-filled config — used only by CI (.github/workflows/lint.yml)
+# to prove the generation/signing/validation pipeline itself works
+# correctly, without requiring the real gaiax.config.yaml (which ships
+# with REPLACE_ME placeholders for YOU to fill in) to be complete.
+#
+# The company, VAT number, and domain below are entirely fictional.
+# Do not use this as your own config — copy the real gaiax.config.yaml
+# instead and follow docs/PHASE_0_ASSESSMENT.md.
+# ─────────────────────────────────────────────────────────────────
+
+environment: staging
+
+domain: "example-logistics.test"
+
+participant:
+  legal_name: "Acme Logistics Analytics GmbH"
+  country: "DE"
+  registration_type: "vatID"
+  registration_number: "DE000000000"
+  headquarter_address:
+    country_subdivision: "DE-BE"
+  legal_address:
+    country_subdivision: "DE-BE"
+  website: "https://example-logistics.test"
+  contact_email: "compliance@example-logistics.test"
+  operates_within: null
+
+service_offerings:
+  - id: "primary"
+    name: "Acme Shipment Tracking Service"
+    description: "Ingests carrier tracking feeds and produces consolidated delivery-status reports for logistics customers."
+    version: "1.0.0"
+    provided_capability: "Shipment tracking data aggregation and reporting"
+    data_account_export:
+      format: "json"
+      access_type: "API"
+      request_type: "API"
+    produces_resources: ["delivery-report"]
+    governed_by_policies: []
+
+data_resources:
+  - id: "delivery-report"
+    name: "Consolidated delivery report"
+    description: "Per-shipment status report generated from aggregated carrier data"
+    format: "JSON"
+    produced_by: "primary"
+    owner: "Customer"
+    retention_claim: "90 days, then deleted by nightly cleanup job"
+    retention_evidence: "ReportRetentionPolicy DB table + services/cleanup.py nightly job"
+    export_mechanism: "Download link, REST API"
+
+policies:
+  retention:
+    claim: "Configurable per-customer, default 90 days"
+    evidence: "ReportRetentionPolicy DB table, enforced nightly by services/cleanup.py"
+  deletion:
+    claim: "Available on request, effective within 24 hours"
+    evidence: "DELETE /api/reports/{id} endpoint, cascades to storage"
+  processing_location:
+    claim: "Germany only"
+    evidence: "Hosting contract specifies Frankfurt datacenter"
+  sharing_with_third_parties:
+    claim: "None"
+    evidence: "No external data-sharing integrations exist in the codebase"
+
+versioning:
+  strategy: "additive"
+  deprecation_notice_days: 30
+
+keys:
+  private_key_path: "keys/private.pem"
+  public_key_path: "keys/public.pem"
+  key_size: 4096
+
+gxdch:
+  staging:
+    registry: "https://registry.lab.gaia-x.eu/v1-staging/api"
+    notary: "https://registrationnumber.notary.lab.gaia-x.eu/v1"
+    compliance: "https://compliance.lab.gaia-x.eu/v1-staging/api"
+  production:
+    registry: "https://registry.gaia-x.eu/v1/api"
+    notary: "https://registrationnumber.notary.gaia-x.eu/v1"
+    compliance: "https://compliance.gaia-x.eu/v1/api"

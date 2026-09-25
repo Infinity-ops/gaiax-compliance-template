@@ -62,6 +62,7 @@ def main():
         private_key_pem = f.read()
 
     verification_method = f"did:web:{cfg['domain']}#JWK2020-RSA"
+    issuer = f"did:web:{cfg['domain']}"
     os.makedirs(WELL_KNOWN_DIR, exist_ok=True)
 
     # 1. Terms & Conditions
@@ -71,7 +72,7 @@ def main():
     tnc = json.loads(tnc_raw)
     tnc["gx:termsAndConditions"] = tnc_text
     tnc["gx:hash"] = tnc_hash
-    _write("tnc.json", sign(tnc, private_key_pem, verification_method))
+    _write("tnc.json", sign(tnc, private_key_pem, verification_method, issuer))
 
     # 2. Legal Participant (references the LRN credential fetched separately
     #    via request_lrn.py — must already exist at .well-known/lrn.json)
@@ -79,7 +80,7 @@ def main():
         print("Missing .well-known/lrn.json — run scripts/request_lrn.py first.")
         sys.exit(1)
     participant_raw = render_template(load_template("legal-participant.jsonld"), cfg)
-    _write("participant.json", sign(json.loads(participant_raw), private_key_pem, verification_method))
+    _write("participant.json", sign(json.loads(participant_raw), private_key_pem, verification_method, issuer))
 
     # 3. Policy document — built directly from config, not from a template
     _write("policy.json", build_policy_json(cfg))
@@ -97,7 +98,7 @@ def main():
             "offering_produces_resources": offering.get("produces_resources", []),
         }
         rendered = json.loads(render_template(offering_template, cfg, extra))
-        signed = sign(rendered, private_key_pem, verification_method)
+        signed = sign(rendered, private_key_pem, verification_method, issuer)
         _write(f"service-offering-{offering['id']}.json", signed)
 
     # 5. One Data Resource per entry in data_resources[]
@@ -116,7 +117,7 @@ def main():
                 "resource_export_mechanism": resource["export_mechanism"],
             }
             rendered = json.loads(render_template(resource_template, cfg, extra))
-            signed = sign(rendered, private_key_pem, verification_method)
+            signed = sign(rendered, private_key_pem, verification_method, issuer)
             _write(f"data-resource-{resource['id']}.json", signed)
 
     print("\nAll credentials built and signed. Host the entire .well-known/ "

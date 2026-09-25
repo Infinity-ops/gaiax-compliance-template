@@ -12,8 +12,23 @@ from jwcrypto.common import json_encode
 from pyld import jsonld
 
 
-def sign(credential: dict, private_key_pem: bytes, verification_method: str) -> dict:
-    """Returns a copy of `credential` with a `proof` block attached."""
+def sign(credential: dict, private_key_pem: bytes, verification_method: str, issuer: str) -> dict:
+    """Returns a copy of `credential` with `issuer` and a `proof` block
+    attached.
+
+    `issuer` MUST be set before normalization/signing — it's part of what
+    gets signed, not metadata added afterward. Per the W3C Verifiable
+    Credential Data Model, `issuer` is a mandatory top-level field, and the
+    GXDCH Compliance Service resolves it to check that `verificationMethod`
+    in the proof actually belongs to that issuer. A credential signed
+    without `issuer` set is one the Compliance Service cannot attribute to
+    anyone — this is a common cause of an opaque "proof not found" error
+    from the Compliance Service, since it has nothing to resolve the proof
+    against.
+    """
+    credential = dict(credential)
+    credential["issuer"] = issuer
+
     key = jwk.JWK.from_pem(private_key_pem)
 
     normalized = jsonld.normalize(

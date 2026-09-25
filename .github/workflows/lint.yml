@@ -1,28 +1,28 @@
-name: Validate Gaia-X config (completeness — for YOUR filled config)
+name: Lint (tooling self-test)
 
-# This checks whether gaiax.config.yaml is COMPLETE — no placeholders,
-# every policy has evidence, all references resolve. It is meant to run
-# in YOUR fork/copy of this template, once you've filled in your own real
-# config, so a PR that reintroduces a placeholder gets caught.
+# Proves the generation/signing/validation PIPELINE ITSELF is sound, using
+# the filled fixture in tests/fixtures/ — independent of whether this
+# repo's own gaiax.config.yaml (a template, shipped with REPLACE_ME
+# placeholders for users to fill in) is complete.
 #
-# On THIS repo's own main branch, this check is EXPECTED TO FAIL — the
-# shipped gaiax.config.yaml is intentionally a placeholder template, not a
-# real filled config. That is not a bug. See .github/workflows/lint.yml
-# for the check that verifies the tooling itself works correctly and is
-# always expected to be green.
+# This is the workflow the README badge points to: it should always be
+# green on a healthy main branch. Contrast with validate.yml, which checks
+# gaiax.config.yaml completeness — that one is EXPECTED to fail on a fresh
+# copy of this template, and passes only once a real user has filled in
+# their own config. Don't confuse the two.
 
 on:
-  pull_request:
-    paths:
-      - "gaiax.config.yaml"
-      - "gaiax/mapping.yaml"
-      - "gaiax/templates/**"
-      - "scripts/**"
   push:
     branches: [main]
+  pull_request:
+    paths:
+      - "scripts/**"
+      - "gaiax/templates/**"
+      - "tests/fixtures/**"
+  workflow_dispatch: {}
 
 jobs:
-  validate:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,10 +34,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Check placeholders, evidence, and cross-references
+      - name: Validate the example fixture (should always pass)
+        env:
+          GAIAX_CONFIG_PATH: tests/fixtures/example.config.yaml
+          GAIAX_MAPPING_PATH: tests/fixtures/example.mapping.yaml
         run: python scripts/validate_local.py
 
-      - name: Check every template renders to valid JSON
+      - name: Render every template against the fixture
+        env:
+          GAIAX_CONFIG_PATH: tests/fixtures/example.config.yaml
         run: |
           python - <<'PYEOF'
           import json, sys
@@ -51,7 +56,7 @@ jobs:
                   text = f.read()
               rendered = render_template(text, cfg, extra or {})
               json.loads(rendered)
-              print(f"OK: {path}" + (f" [{extra.get('offering_id') or extra.get('resource_id')}]" if extra else ""))
+              print(f"OK: {path}")
 
           render_and_check("gaiax/templates/legal-participant.jsonld")
           render_and_check("gaiax/templates/terms-and-conditions.jsonld")
@@ -82,12 +87,23 @@ jobs:
               }
               render_and_check("gaiax/templates/data-resource.jsonld", extra)
 
-          print("All templates render to valid JSON.")
+          print("All templates render to valid JSON against the fixture.")
           PYEOF
 
-      - name: Warn if production env with placeholder domain
+      - name: Confirm shipped gaiax.config.yaml is still a clean, unfilled template
         run: |
-          if grep -q "environment: production" gaiax.config.yaml && grep -q "example.com" gaiax.config.yaml; then
-            echo "::error::environment is 'production' but domain still looks like a placeholder."
-            exit 1
-          fi
+          python - <<'PYEOF'
+          import sys
+          sys.path.insert(0, "scripts")
+          from _config import load_config, find_unfilled_placeholders
+
+          cfg = load_config()
+          unfilled = find_unfilled_placeholders(cfg)
+          if not unfilled:
+              print("::error::gaiax.config.yaml has no REPLACE_ME placeholders left — "
+                    "did real data get committed to the template by accident? "
+                    "Check before merging.")
+              sys.exit(1)
+          print(f"OK: shipped template config still has {len(unfilled)} "
+                f"placeholder field(s), as expected for a fresh template.")
+          PYEOF
