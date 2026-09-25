@@ -37,23 +37,33 @@ Gaia-X specifications evolve, so always verify the current requirements before u
 The important idea is that **business decisions happen before configuration** and the resulting credentials are continuously re-validated.
 
 ```mermaid
-flowchart TD
-    A[Phase 0: Repository & Business Assessment] --> B[gaiax/mapping.yaml
-Business → Gaia-X class mapping]
-    B --> C[gaiax.config.yaml]
-    C --> D[Generate JSON-LD
-scripts/build_credentials.py]
-    D --> E[Sign Credentials
-JWS over URDNA2015]
-    E --> F[Build Verifiable Presentation
-scripts/submit_compliance.py]
-    F --> G[GXDCH Compliance Service]
-    G --> H[Compliance Credential issued]
-    H --> I[Catalog / Data Space publication
-out of template scope]
-    H --> J[Continuous Compliance
-.github/workflows/continuous-compliance.yml]
-    J -.re-validate on schedule.-> G
+flowchart LR
+    subgraph Inside["Inside your trust boundary"]
+        App[Your Application]
+        DB[(Your Database)]
+        Keys[Private signing key
+keys/private.pem]
+        App --> DB
+        Keys -.signs.-> Cred[Generated Credentials]
+    end
+
+    subgraph Public["Publicly hosted, HTTPS"]
+        WK[".well-known/
+did.json, participant.json,
+service-offering-*.json,
+data-resource-*.json,
+policy.json, tnc.json"]
+    end
+
+    subgraph Outside["Outside your trust boundary"]
+        GXDCH[Gaia-X Digital Clearing House]
+        Consumer[External Gaia-X Consumer]
+    end
+
+    Cred --> WK
+    WK -->|fetched & verified over HTTPS| GXDCH
+    GXDCH -->|Compliance Credential| WK
+    Consumer -->|discovers & verifies| WK
 ```
 
 **The private key never crosses the trust boundary.** GXDCH and consumers receive signed public documents; they do not receive anything that can be used to sign as you.
