@@ -49,8 +49,7 @@ and onto paper first.**
 ### Step 0 — Clone/copy the template
 
 ```bash
-# unzip into your own new repo, or use it as a GitHub template
-cd gaiax-compliance-template-v2
+cd gaiax-compliance-template
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
